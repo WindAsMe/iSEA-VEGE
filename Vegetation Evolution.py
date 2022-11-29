@@ -88,22 +88,37 @@ def Growth():
 
 def Maturity():
     global Population, Population_fitness
-    seed_individual = np.zeros((POPULATION_SIZE*SEED_NUM - 2, DIMENSION_NUM))
-    seed_individual_fitness = np.zeros(POPULATION_SIZE*SEED_NUM - 2)
+    seed_individual = np.zeros((POPULATION_SIZE*SEED_NUM-2, DIMENSION_NUM))
+    seed_individual_fitness = np.zeros(POPULATION_SIZE*SEED_NUM-2)
     allocation = DynamicAllocation()
     x_best = Population[np.argmin(Population_fitness)]
     pointer = 0
     for i in range(POPULATION_SIZE):
         # each individual generates multiple seeds
         for j in range(int(allocation[i])):
-
             index1 = index2 = 0
             while index1 == i:
                 index1 = np.random.randint(0, POPULATION_SIZE)
             while index2 == i or index2 == index1:
                 index2 = np.random.randint(0, POPULATION_SIZE)
+            r = np.random.rand()
+            if r < 1 / 4:  # rand/1
+                k = np.random.randint(0, POPULATION_SIZE)
+                while k == index1 or k == index2:
+                    k = np.random.randint(0, POPULATION_SIZE)
+                    seed_individual[pointer] = Population[k] + MS * (np.random.random() * 2.0 - 1.0) * (
+                                Population[index1] - Population[index2])
+            elif 1 / 4 <= r < 2 / 4:  # best/1
+                seed_individual[pointer] = x_best + MS * (np.random.random() * 2.0 - 1.0) * (
+                            Population[index1] - Population[index2])
 
-            seed_individual[pointer] = Mutation(i, x_best)
+            elif 2 / 4 <= r < 3 / 4:  # cur/1
+                seed_individual[pointer] = Population[i] + MS * (np.random.random() * 2.0 - 1.0) * (
+                            Population[index1] - Population[index2])
+            else:  # cur-to-best/1
+                seed_individual[pointer] = Population[i] + MS * (np.random.random() * 2.0 - 1.0) * (
+                            x_best - Population[i]) + MS * (np.random.random() * 2.0 - 1.0) * (
+                                                       Population[index1] - Population[index2])
 
             CheckIndi(seed_individual[pointer])
             seed_individual_fitness[pointer] = Fitness_Evaluation(seed_individual[pointer])
@@ -117,6 +132,7 @@ def Maturity():
     f2 = Fitness_Evaluation(s2)
     temp_individual = np.vstack((temp_individual, [s1, s2]))
     temp_individual_fitness = np.hstack((temp_individual_fitness, [f1, f2]))
+
 
     tmp = list(map(list, zip(range(len(temp_individual_fitness)), temp_individual_fitness)))
     small = sorted(tmp, key=lambda x: x[1], reverse=False)
@@ -160,7 +176,7 @@ def RunVEGE():
             Best_Evaluation_Num_list.append(Current_fitness_evaluations)
         All_Trial_Best.append(Best_list)
         All_Trial_Best_Evaluation_Num.append(Best_Evaluation_Num_list)
-    np.savetxt('./iSEA-VEGE_Data/F{}_{}D.csv'.format(Fun_num, DIMENSION_NUM), All_Trial_Best, delimiter=",")
+    np.savetxt('./iSEA_VEGE_Data/F{}_{}D.csv'.format(Fun_num, DIMENSION_NUM), All_Trial_Best, delimiter=",")
 
 
 def DynamicAllocation():
@@ -186,33 +202,11 @@ def DynamicAllocation():
     return allocation
 
 
-def Mutation(i, x_best):  # Randomly select mutation strategy among rand/1, best/1, and cur/1
-    global Population, MS, POPULATION_SIZE
-
-    index1 = index2 = 0
-    while index1 == i:
-        index1 = np.random.randint(0, POPULATION_SIZE)
-    while index2 == i or index2 == index1:
-        index2 = np.random.randint(0, POPULATION_SIZE)
-
-    r = np.random.rand()
-    if r < 1 / 3:  # rand/1
-        k = np.random.randint(0, POPULATION_SIZE)
-        while k == index1 or k == index2:
-            k = np.random.randint(0, POPULATION_SIZE)
-        seed = Population[k] + MS * (np.random.random() * 2.0 - 1.0) * (Population[index1] - Population[index2])
-    elif 1/3 <= r < 2/3:  # best/1
-        seed = x_best + MS * (np.random.random() * 2.0 - 1.0) * (Population[index1] - Population[index2])
-    else:  # cur/1
-        seed = Population[i] + MS * (np.random.random() * 2.0 - 1.0) * (Population[index1] - Population[index2])
-    return seed
-
-
 def main():
     global Fun_num
 
-    if os.path.exists( './iSEA-VEGE_Data' ) == False:   # Automatically create a folder when the folder does not exist
-        os.makedirs('./iSEA-VEGE_Data')
+    if os.path.exists( './iSEA_VEGE_Data' ) == False:   # Automatically create a folder when the folder does not exist
+        os.makedirs('./iSEA_VEGE_Data')
         
     # run the 29 functions of the cec2017 test set in turn
     for i in range(3, 31):
